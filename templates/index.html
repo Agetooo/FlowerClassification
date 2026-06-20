@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flower Classification Hub</title>
+    <!-- Google Fonts: Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: rgba(17, 25, 40, 0.65);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --accent-teal: #14b8a6;
+            --accent-teal-glow: rgba(20, 184, 166, 0.4);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --danger: #ef4444;
+            
+            --daisy-color: #facc15;
+            --dandelion-color: #f97316;
+            --rose-color: #ec4899;
+            --sunflower-color: #eab308;
+            --tulip-color: #a855f7;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(20, 184, 166, 0.15) 0%, transparent 40%);
+            background-attachment: fixed;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            margin-top: 2.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.05em;
+            background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 40%, #2dd4bf 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            font-weight: 300;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr 1.3fr;
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Glassmorphism Panel */
+        .panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--panel-border);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .panel:hover {
+            box-shadow: 0 12px 40px 0 rgba(99, 102, 241, 0.1);
+        }
+
+        .panel-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.75rem;
+            color: #fff;
+        }
+
+        .panel-title span {
+            color: var(--accent-teal);
+        }
+
+        /* Config Form Elements */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Button Groups for Selectors */
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 0.35rem;
+            border-radius: 12px;
+        }
+
+        .btn-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.6rem;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+        }
+
+        .btn-toggle:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .btn-toggle.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        .btn-toggle:disabled {
+            opacity: 0.2;
+            cursor: not-allowed;
+        }
+
+        /* Drag and Drop Uploader */
+        .upload-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--accent-teal);
+            background: rgba(20, 184, 166, 0.05);
+            box-shadow: inset 0 0 20px rgba(20, 184, 166, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            transition: transform 0.3s ease;
+            color: var(--accent-teal);
+        }
+
+        .upload-zone:hover .upload-icon {
+            transform: translateY(-5px);
+        }
+
+        .upload-text {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        .upload-text strong {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* Preview State inside Upload Card */
+        .preview-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: #111827;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            border-radius: 16px;
+        }
+
+        .preview-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .btn-change-image {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            transition: all 0.2s ease;
+        }
+
+        .btn-change-image:hover {
+            background: #000;
+        }
+
+        /* Action Buttons */
+        .btn-submit {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
+            border: none;
+            color: #fff;
+            padding: 1rem;
+            border-radius: 14px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 1.05rem;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 15px var(--primary-glow);
+            transition: all 0.3s ease;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--primary-glow);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        /* Results Panel States */
+        .results-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 4rem 1rem;
+        }
+
+        .results-empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .results-loading {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 4rem 1rem;
+        }
+
+        /* Modern Spinner */
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(99, 102, 241, 0.1);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Results Display */
+        .results-content {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Flower species badge with neon glow */
+        .prediction-badge-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .prediction-title {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .prediction-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        /* Side-by-side Image Compare */
+        .image-compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .compare-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 14px;
+            padding: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .compare-card span {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .compare-img {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #111;
+        }
+
+        /* Probability Bars */
+        .probability-section-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .prob-row {
+            margin-bottom: 0.75rem;
+        }
+
+        .prob-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .prob-name {
+            font-weight: 500;
+            text-transform: capitalize;
+        }
+
+        .prob-value {
+            color: var(--text-muted);
+        }
+
+        .prob-bar-bg {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .prob-bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.8s cubic-bezier(0.1, 0.8, 0.2, 1);
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* Model Meta details */
+        .meta-details {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Modal Settings */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 10, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-container {
+            width: 90%;
+            max-width: 480px;
+            background: #111827;
+            border: 1px solid var(--panel-border);
+            border-radius: 24px;
+            padding: 2.2rem;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            animation: modalPop 0.3s cubic-bezier(0.1, 0.8, 0.2, 1);
+        }
+
+        @keyframes modalPop {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+
+        .modal-desc {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 2rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn-modal {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+        }
+
+        .btn-modal-cancel {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+        }
+
+        .btn-modal-cancel:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
+        }
+
+        .btn-modal-confirm {
+            background: var(--accent-teal);
+            border: none;
+            color: #fff;
+            box-shadow: 0 4px 12px var(--accent-teal-glow);
+        }
+
+        .btn-modal-confirm:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px var(--accent-teal-glow);
+        }
+
+        /* Live Training Progress inside Modal */
+        .modal-progress {
+            display: none;
+        }
+
+        .progress-spinner-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-message {
+            font-size: 0.95rem;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .progress-bar-bg {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            overflow: hidden;
+            width: 100%;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent-teal) 100%);
+            border-radius: 3px;
+            position: absolute;
+            top: 0;
+            left: -100%;
+            animation: loaderBar 2.5s ease-in-out infinite;
+        }
+
+        @keyframes loaderBar {
+            0% { left: -100%; }
+            50% { left: 0%; }
+            100% { left: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Flower Classification Hub</h1>
+        <p>Giao diện điều phối thuật toán (Strategy & Factory Design Patterns)</p>
+    </header>
+
+    <div class="container">
+        <!-- LEFT COLUMN: CONFIGURATION AND UPLOAD -->
+        <div class="panel">
+            <div class="panel-title">
+                <span>⚙️</span> Cấu hình Pipeline
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Bộ trích xuất đặc trưng (Feature Extractor)</label>
+                <div class="btn-group" id="extractor-group">
+                    <button class="btn-toggle active" data-val="SIFT">SIFT</button>
+                    <button class="btn-toggle" data-val="ORB">ORB</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Bộ phân loại (Classifier)</label>
+                <div class="btn-group" id="classifier-group">
+                    <button class="btn-toggle active" data-val="RandomForest">RF</button>
+                    <button class="btn-toggle" data-val="XGBoost">XGBoost</button>
+                    <button class="btn-toggle" data-val="SVM">SVM Cũ</button>
+                </div>
+            </div>
+
+            <div class="panel-title" style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.5rem;">
+                <span>📸</span> Tải lên hình ảnh
+            </div>
+
+            <div class="upload-zone" id="drop-zone">
+                <div class="upload-icon">📤</div>
+                <div class="upload-text">
+                    Kéo thả ảnh vào đây hoặc <strong>chọn tệp</strong>
+                </div>
+                <input type="file" id="file-input" class="file-input" accept="image/*">
+                
+                <!-- Preview Overlay -->
+                <div class="preview-container" id="preview-box">
+                    <img src="" alt="Preview" class="preview-img" id="preview-image">
+                    <button class="btn-change-image" id="btn-reset-image">Thay đổi ảnh</button>
+                </div>
+            </div>
+
+            <button class="btn-submit" id="btn-predict-submit">PHÂN LOẠI ẢNH</button>
+        </div>
+
+        <!-- RIGHT COLUMN: RESULTS PANEL -->
+        <div class="panel">
+            <div class="panel-title">
+                <span>📊</span> Kết quả dự đoán
+            </div>
+
+            <!-- Empty State -->
+            <div class="results-empty" id="results-empty-state">
+                <div class="results-empty-icon">💮</div>
+                <h3>Sẵn sàng xử lý</h3>
+                <p style="font-weight: 300; margin-top: 0.5rem; max-width: 250px;">Hãy tải lên một bức ảnh hoa và ấn nút Phân loại ảnh.</p>
+            </div>
+
+            <!-- Loading State -->
+            <div class="results-loading" id="results-loading-state">
+                <div class="spinner"></div>
+                <h3 style="font-weight: 500;">Đang thực thi Pipeline...</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem; font-weight: 300;">Trích xuất -> Histogram BoVW -> Phân loại</p>
+            </div>
+
+            <!-- Results Content -->
+            <div class="results-content" id="results-content-state">
+                
+                <div class="prediction-badge-container" id="pred-badge-box">
+                    <div class="prediction-title">Loài hoa dự đoán</div>
+                    <div class="prediction-value" id="pred-class-value">tulip</div>
+                </div>
+
+                <div class="image-compare-grid">
+                    <div class="compare-card">
+                        <span>Ảnh gốc (Original)</span>
+                        <img src="" class="compare-img" id="result-img-orig">
+                    </div>
+                    <div class="compare-card">
+                        <span>Làm sạch (Preprocessed)</span>
+                        <img src="" class="compare-img" id="result-img-prep">
+                    </div>
+                </div>
+
+                <div class="probability-section-title">Độ tin cậy dự đoán (Confidence Scores)</div>
+                <div id="prob-bars-container">
+                    <!-- Progress bars generated dynamically by JS -->
+                </div>
+
+                <div class="meta-details">
+                    <div>Cấu hình: <strong id="meta-config-val">ORB + RandomForest</strong></div>
+                    <div id="meta-time-val">Thời gian chạy: 45 ms</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL FOR INITIALIZATION AND TRAINING -->
+    <div class="modal-overlay" id="training-modal">
+        <div class="modal-container">
+            <!-- Phase 1: Ask for Training -->
+            <div id="modal-prompt-state">
+                <div class="modal-title">Cần huấn luyện mô hình</div>
+                <div class="modal-desc">
+                    Hệ thống chưa tìm thấy tệp mô hình đã huấn luyện cho cấu hình này.<br>
+                    Bạn có muốn khởi chạy huấn luyện trên tập dữ liệu hoa (2.746 ảnh) ngay bây giờ không?
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn-modal btn-modal-cancel" id="btn-modal-cancel">Hủy</button>
+                    <button class="btn-modal btn-modal-confirm" id="btn-modal-confirm">Bắt đầu huấn luyện</button>
+                </div>
+            </div>
+
+            <!-- Phase 2: Live Progress -->
+            <div class="modal-progress" id="modal-progress-state">
+                <div class="modal-title">Đang huấn luyện mô hình</div>
+                <div class="modal-desc" style="margin-bottom: 1.5rem;">
+                    Vui lòng không đóng trình duyệt. Quá trình huấn luyện K-Means BoVW và phân loại đang diễn ra dưới nền.
+                </div>
+                <div class="progress-spinner-container">
+                    <div class="spinner" style="border-top-color: var(--accent-teal);"></div>
+                </div>
+                <div class="progress-message" id="modal-progress-msg">Đang chuẩn bị dữ liệu...</div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const previewBox = document.getElementById('preview-box');
+        const previewImage = document.getElementById('preview-image');
+        const btnResetImage = document.getElementById('btn-reset-image');
+        
+        const btnPredictSubmit = document.getElementById('btn-predict-submit');
+        
+        const resultsEmpty = document.getElementById('results-empty-state');
+        const resultsLoading = document.getElementById('results-loading-state');
+        const resultsContent = document.getElementById('results-content-state');
+        
+        const predClassValue = document.getElementById('pred-class-value');
+        const predBadgeBox = document.getElementById('pred-badge-box');
+        const resultImgOrig = document.getElementById('result-img-orig');
+        const resultImgPrep = document.getElementById('result-img-prep');
+        const probBarsContainer = document.getElementById('prob-bars-container');
+        const metaConfigVal = document.getElementById('meta-config-val');
+        const metaTimeVal = document.getElementById('meta-time-val');
+        
+        const trainingModal = document.getElementById('training-modal');
+        const modalPromptState = document.getElementById('modal-prompt-state');
+        const modalProgressState = document.getElementById('modal-progress-state');
+        const btnModalCancel = document.getElementById('btn-modal-cancel');
+        const btnModalConfirm = document.getElementById('btn-modal-confirm');
+        const modalProgressMsg = document.getElementById('modal-progress-msg');
+
+        // State variables
+        let selectedExtractor = 'SIFT';
+        let selectedClassifier = 'RandomForest';
+        let uploadedFile = null;
+
+        // Class colors mapping for results badge and progress bars
+        const flowerColors = {
+            'daisy': 'var(--daisy-color)',
+            'dandelion': 'var(--dandelion-color)',
+            'rose': 'var(--rose-color)',
+            'sunflower': 'var(--sunflower-color)',
+            'tulip': 'var(--tulip-color)'
+        };
+
+        // Setup Button Selectors (Toggles)
+        function setupToggles(groupId, callback) {
+            const container = document.getElementById(groupId);
+            const buttons = container.querySelectorAll('.btn-toggle');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    buttons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    callback(btn.getAttribute('data-val'));
+                });
+            });
+        }
+
+        setupToggles('extractor-group', (val) => {
+            selectedExtractor = val;
+        });
+
+        setupToggles('classifier-group', (val) => {
+            selectedClassifier = val;
+            
+            // SVM bypasses feature extraction, disable extractor buttons
+            const extractorButtons = document.getElementById('extractor-group').querySelectorAll('.btn-toggle');
+            if (val === 'SVM') {
+                extractorButtons.forEach(btn => btn.setAttribute('disabled', 'true'));
+            } else {
+                extractorButtons.forEach(btn => btn.removeAttribute('disabled'));
+            }
+        });
+
+        // Drag & Drop event handlers
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        ['dragleave', 'dragend'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.remove('dragover');
+            });
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+                handleFile(fileInput.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Vui lòng chỉ tải lên tệp tin ảnh!');
+                return;
+            }
+            uploadedFile = file;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                previewBox.style.display = 'flex';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        btnResetImage.addEventListener('click', (e) => {
+            e.stopPropagation(); // Avoid triggering file chooser dialog
+            uploadedFile = null;
+            previewImage.src = '';
+            previewBox.style.display = 'none';
+            fileInput.value = '';
+        });
+
+        // Submit prediction request
+        btnPredictSubmit.addEventListener('click', async () => {
+            if (!uploadedFile) {
+                alert('Vui lòng tải lên hoặc kéo thả một bức ảnh trước!');
+                return;
+            }
+
+            // UI feedback
+            resultsEmpty.style.display = 'none';
+            resultsContent.style.display = 'none';
+            resultsLoading.style.display = 'flex';
+
+            const formData = new FormData();
+            formData.append('image', uploadedFile);
+            formData.append('extractor', selectedExtractor);
+            formData.append('classifier', selectedClassifier);
+
+            try {
+                const startTime = performance.now();
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                const endTime = performance.now();
+
+                if (data.status === 'not_trained') {
+                    // Show train modal
+                    resultsLoading.style.display = 'none';
+                    resultsEmpty.style.display = 'flex';
+                    showTrainingModal();
+                } else if (data.status === 'success') {
+                    // Update predictions
+                    resultsLoading.style.display = 'none';
+                    resultsContent.style.display = 'block';
+
+                    renderResults(data, Math.round(endTime - startTime));
+                } else {
+                    alert('Lỗi: ' + (data.error || 'Đã có sự cố xảy ra.'));
+                    resultsLoading.style.display = 'none';
+                    resultsEmpty.style.display = 'flex';
+                }
+            } catch (err) {
+                alert('Không thể kết nối đến Flask backend server.');
+                resultsLoading.style.display = 'none';
+                resultsEmpty.style.display = 'flex';
+            }
+        });
+
+        function renderResults(data, elapsedMs) {
+            const predClass = data.predicted_class.toLowerCase();
+            const color = flowerColors[predClass] || 'var(--primary)';
+            
+            // Set Predicted class
+            predClassValue.innerText = data.predicted_class;
+            predClassValue.style.color = color;
+            predBadgeBox.style.boxShadow = `0 10px 25px -5px ${color}40, inset 0 0 15px ${color}10`;
+            
+            // Set images
+            resultImgOrig.src = data.original_image;
+            resultImgPrep.src = data.preprocessed_image;
+
+            // Set metadata
+            metaConfigVal.innerText = `${data.config.extractor} + ${data.config.classifier}`;
+            metaTimeVal.innerText = `Thời gian chạy: ${elapsedMs} ms`;
+
+            // Draw Probability bars
+            probBarsContainer.innerHTML = '';
+            
+            // Sort classes for priority
+            const sortedClasses = Object.entries(data.probabilities).sort((a,b) => b[1] - a[1]);
+            
+            sortedClasses.forEach(([name, prob]) => {
+                const percent = (prob * 100).toFixed(1);
+                const classColor = flowerColors[name.toLowerCase()] || 'var(--primary)';
+                
+                const barRow = document.createElement('div');
+                barRow.className = 'prob-row';
+                barRow.innerHTML = `
+                    <div class="prob-labels">
+                        <span class="prob-name" style="color: ${name.toLowerCase() === predClass ? '#fff' : 'var(--text-muted)'}">${name}</span>
+                        <span class="prob-value">${percent}%</span>
+                    </div>
+                    <div class="prob-bar-bg">
+                        <div class="prob-bar-fill" style="width: 0%; background-color: ${classColor}; box-shadow: 0 0 10px ${classColor}30;"></div>
+                    </div>
+                `;
+                probBarsContainer.appendChild(barRow);
+                
+                // Trigger animation
+                setTimeout(() => {
+                    barRow.querySelector('.prob-bar-fill').style.width = `${percent}%`;
+                }, 50);
+            });
+        }
+
+        // Training Modal Control
+        function showTrainingModal() {
+            trainingModal.style.display = 'flex';
+            modalPromptState.style.display = 'block';
+            modalProgressState.style.display = 'none';
+        }
+
+        btnModalCancel.addEventListener('click', () => {
+            trainingModal.style.display = 'none';
+        });
+
+        btnModalConfirm.addEventListener('click', async () => {
+            modalPromptState.style.display = 'none';
+            modalProgressState.style.display = 'block';
+            modalProgressMsg.innerText = 'Khởi chạy luồng huấn luyện nền...';
+
+            const formData = new FormData();
+            formData.append('extractor', selectedExtractor);
+            formData.append('classifier', selectedClassifier);
+
+            try {
+                const response = await fetch('/train', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.status === 'started') {
+                    // Start polling
+                    pollTrainingStatus();
+                } else {
+                    alert('Lỗi khởi động huấn luyện: ' + data.message);
+                    trainingModal.style.display = 'none';
+                }
+            } catch (err) {
+                alert('Không thể kết nối đến server.');
+                trainingModal.style.display = 'none';
+            }
+        });
+
+        // Polling training status from Flask backend
+        async function pollTrainingStatus() {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch('/train_status');
+                    const statusData = await response.json();
+
+                    if (statusData.status === 'training') {
+                        modalProgressMsg.innerText = statusData.progress;
+                    } else if (statusData.status === 'completed') {
+                        clearInterval(interval);
+                        modalProgressMsg.innerHTML = `<span style="color: var(--accent-teal)">🎉 ${statusData.progress}</span>`;
+                        setTimeout(() => {
+                            trainingModal.style.display = 'none';
+                            // Re-trigger prediction once trained
+                            btnPredictSubmit.click();
+                        }, 1500);
+                    } else if (statusData.status === 'failed') {
+                        clearInterval(interval);
+                        alert('Huấn luyện thất bại: ' + statusData.error);
+                        trainingModal.style.display = 'none';
+                    }
+                } catch (err) {
+                    clearInterval(interval);
+                    alert('Lỗi kết nối khi cập nhật tiến trình.');
+                    trainingModal.style.display = 'none';
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
