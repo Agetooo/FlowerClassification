@@ -94,24 +94,9 @@ def predict():
         _, prep_buffer = cv2.imencode('.jpg', preprocessed_img)
         prep_base64 = base64.b64encode(prep_buffer).decode('utf-8')
         
-        # Dự đoán nhãn lớp bằng Hub
-        predicted_class = hub.execute_pipeline(temp_path)
-        
-        # Tính xác suất phân phối xác suất
-        probabilities = {}
-        if classifier_type.upper() == "SVM":
-            from PIL import Image
-            pil_img = Image.open(temp_path).convert("RGB").resize(hub.classifier.img_size)
-            arr = np.array(pil_img).astype("float64").reshape(-1)
-            probabilities = get_probability_dict(hub, arr, "SVM")
-        else:
-            descriptors = hub.extractor.extract_features(preprocessed_img)
-            feature_vector = hub.vocab.transform(descriptors)
-            probabilities = get_probability_dict(hub, feature_vector, classifier_type)
-            
-        # Fallback nếu không có xác suất
-        if not probabilities:
-            probabilities = {cls: (1.0 if cls == predicted_class else 0.0) for cls in hub.classes}
+        # Dự đoán nhãn lớp và tính xác suất phân phối bằng Hub
+        predicted_class, probabilities = hub.execute_pipeline_with_proba(temp_path)
+        print(f"[App Server] predicted: {predicted_class}, probabilities: {probabilities}")
 
         return jsonify({
             "status": "success",
@@ -152,7 +137,7 @@ def train_worker(extractor_type: str, classifier_type: str):
         training_status["progress"] = "Đang trích xuất đặc trưng và tính BoVW..."
         
         # Thực thi pipeline huấn luyện
-        hub.train_pipeline("it3160/flower-training")
+        hub.train_pipeline("flower-training")
         
         training_status["status"] = "completed"
         training_status["progress"] = f"Huấn luyện thành công cấu hình {extractor_type} + {classifier_type}!"

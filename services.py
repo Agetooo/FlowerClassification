@@ -12,12 +12,13 @@ class FeatureExtractorService(ABC):
     Interface cho các dịch vụ trích xuất đặc trưng hình ảnh.
     """
     @abstractmethod
-    def extract_features(self, image: np.ndarray) -> np.ndarray:
+    def extract_features(self, image: np.ndarray, mask: Optional[np.ndarray] = None) -> np.ndarray:
         """
         Trích xuất các đặc trưng (descriptors) từ ảnh.
         
         Args:
             image (np.ndarray): Ảnh đầu vào đọc bằng OpenCV (BGR hoặc Grayscale).
+            mask (np.ndarray, optional): Mặt nạ xác định vùng quan tâm.
             
         Returns:
             np.ndarray: Ma trận descriptors có hình dạng (N, descriptor_dim) 
@@ -44,14 +45,14 @@ class SIFTService(FeatureExtractorService):
         """
         self.sift = cv2.SIFT_create(nfeatures=n_features)
 
-    def extract_features(self, image: np.ndarray) -> np.ndarray:
+    def extract_features(self, image: np.ndarray, mask: Optional[np.ndarray] = None) -> np.ndarray:
         # Chuyển đổi sang ảnh xám nếu là ảnh màu
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
             gray = image
         
-        keypoints, descriptors = self.sift.detectAndCompute(gray, None)
+        keypoints, descriptors = self.sift.detectAndCompute(gray, mask)
         if descriptors is None:
             return np.zeros((0, self.descriptor_dim), dtype=np.float32)
         return descriptors.astype(np.float32)
@@ -71,14 +72,14 @@ class ORBService(FeatureExtractorService):
         """
         self.orb = cv2.ORB_create(nfeatures=n_features)
 
-    def extract_features(self, image: np.ndarray) -> np.ndarray:
+    def extract_features(self, image: np.ndarray, mask: Optional[np.ndarray] = None) -> np.ndarray:
         # Chuyển đổi sang ảnh xám nếu là ảnh màu
         if len(image.shape) == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
             gray = image
             
-        keypoints, descriptors = self.orb.detectAndCompute(gray, None)
+        keypoints, descriptors = self.orb.detectAndCompute(gray, mask)
         if descriptors is None:
             return np.zeros((0, self.descriptor_dim), dtype=np.float32)
         return descriptors.astype(np.float32)
@@ -88,11 +89,26 @@ class ORBService(FeatureExtractorService):
         return 32
 
 
+def extract_hsv_histogram(image: np.ndarray, mask: Optional[np.ndarray] = None) -> np.ndarray:
+    """
+    Trích xuất và chuẩn hóa L2 histogram màu sắc 3D HSV của ảnh.
+    Đầu ra là vector phẳng 128 chiều (8 Hue x 4 Saturation x 4 Value).
+    """
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    # Bins: 8 cho H, 4 cho S, 4 cho V
+    hist = cv2.calcHist([hsv], [0, 1, 2], mask, [8, 4, 4], [0, 180, 0, 256, 0, 256])
+    hist_flat = hist.flatten()
+    # Chuẩn hóa L2
+    norm = np.linalg.norm(hist_flat, ord=2)
+    if norm > 0:
+        hist_flat /= norm
+    return hist_flat
+
 class VisualVocabulary:
     """
     Lớp biểu diễn BoVW (Bag-of-Visual-Words) từ điển hình ảnh dựa trên phân cụm K-Means.
     """
-    def __init__(self, n_clusters: int = 100):
+    def __init__(self, n_clusters: int = 300):
         self.n_clusters = n_clusters
         # Sử dụng MiniBatchKMeans để tối ưu hóa thời gian tính toán phân cụm
         self.kmeans = MiniBatchKMeans(n_clusters=n_clusters, random_state=42, batch_size=1000, n_init="auto")
@@ -187,10 +203,12 @@ class RandomForestService(ClassifierService):
     """
     Dịch vụ phân loại sử dụng Random Forest.
     """
-    def __init__(self, n_estimators: int = 100, max_depth: Optional[int] = None, random_state: int = 42):
+    def __init__(self, n_estimators: int = 100, max_depth: Optional[int] = 12, random_state: int = 42):
         self.model = RandomForestClassifier(
             n_estimators=n_estimators,
             max_depth=max_depth,
+            min_samples_leaf=4,
+            max_features='sqrt',
             random_state=random_state,
             class_weight='balanced',
             n_jobs=-1
@@ -235,11 +253,13 @@ class XGBoostService(ClassifierService):
     """
     Dịch vụ phân loại sử dụng XGBoost.
     """
-    def __init__(self, max_depth: int = 6, learning_rate: float = 0.1, n_estimators: int = 100, random_state: int = 42):
+    def __init__(self, max_depth: int = 4, learning_rate: float = 0.05, n_estimators: int = 100, random_state: int = 42):
         self.model = XGBClassifier(
             max_depth=max_depth,
             learning_rate=learning_rate,
             n_estimators=n_estimators,
+            subsample=0.8,
+            colsample_bytree=0.8,
             random_state=random_state,
             eval_metric='mlogloss'
         )

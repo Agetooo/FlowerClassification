@@ -4,7 +4,7 @@ from hub import ClassificationHub
 
 def main():
     # Thư mục chứa tập dữ liệu huấn luyện
-    dataset_dir = "it3160/flower-training"
+    dataset_dir = "flower-training"
     
     # Chọn ảnh mẫu để chạy thử (lấy ảnh đầu tiên của lớp daisy trong tập train)
     sample_image = os.path.join(dataset_dir, "daisy", "10140303196_b88d3d6cec.jpg")
@@ -50,17 +50,21 @@ def main():
     print("   KIỂM TRA TÍNH TƯƠNG THÍCH NGƯỢC VỚI SVM CŨ   ")
     print("==================================================")
     
-    # 1. Cấu hình bộ phân loại SVM (SVMService tự động tải best_svm_flower.joblib)
-    hub.set_classifier("SVM")
-    
-    # 2. Chạy dự đoán ảnh mẫu bằng SVM cũ (sử dụng ảnh thô 32x32x3 phẳng làm phẳng)
-    print(f"\nTiến hành dự đoán ảnh mẫu bằng SVM cũ: '{sample_image}'")
-    start_time = time.time()
-    predicted_flower_svm = hub.execute_pipeline(sample_image)
-    duration_svm = time.time() - start_time
-    
-    print(f"Kết quả dự đoán (SVM cũ): {predicted_flower_svm}")
-    print(f"Thời gian thực thi pipeline: {duration_svm * 1000:.2f} ms")
+    try:
+        # 1. Cấu hình bộ phân loại SVM (SVMService tự động tải best_svm_flower.joblib)
+        hub.set_classifier("SVM")
+        
+        # 2. Chạy dự đoán ảnh mẫu bằng SVM cũ (sử dụng ảnh thô 32x32x3 phẳng làm phẳng)
+        print(f"\nTiến hành dự đoán ảnh mẫu bằng SVM cũ: '{sample_image}'")
+        start_time = time.time()
+        predicted_flower_svm = hub.execute_pipeline(sample_image)
+        duration_svm = time.time() - start_time
+        
+        print(f"Kết quả dự đoán (SVM cũ): {predicted_flower_svm}")
+        print(f"Thời gian thực thi pipeline: {duration_svm * 1000:.2f} ms")
+    except Exception as e:
+        print(f"\n[Thông báo] Không thể chạy SVM cũ vì: {e}")
+        print("Mô hình SVM cũ (5 lớp) đã bị xóa để phục vụ cho tập dữ liệu mới (7 lớp).")
 
 if __name__ == "__main__":
     main()

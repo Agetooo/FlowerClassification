@@ -1,0 +1,21 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+
+# Datasets (Do not upload raw images/datasets to GitHub)
+flower-training/
+it3160/
+uploads/
+
+# Trained models & large binary files
+*.joblib
+*.pkl
+*.zip
+*.tar.gz
+*.tgz
+
+# IDE configuration
+.vscode/
+.idea/
