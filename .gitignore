@@ -6,7 +6,6 @@ __pycache__/
 
 # Datasets (Do not upload raw images/datasets to GitHub)
 flower-training/
-it3160/
 uploads/
 
 # Trained models & large binary files
@@ -19,3 +18,4 @@ uploads/
 # IDE configuration
 .vscode/
 .idea/
+flowers/
