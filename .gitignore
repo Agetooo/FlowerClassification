@@ -6,11 +6,14 @@ __pycache__/
 
 # Datasets (Do not upload raw images/datasets to GitHub)
 flower-training/
+flower-training
 uploads/
 it3160/
+flowers/
 # Trained models & large binary files
 *.joblib
 *.pkl
+*.npy
 *.zip
 *.tar.gz
 *.tgz
@@ -18,4 +21,12 @@ it3160/
 # IDE configuration
 .vscode/
 .idea/
-flowers/
+
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# macOS
+.DS_Store

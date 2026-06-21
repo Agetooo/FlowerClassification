@@ -1,11 +1,20 @@
+import os
 import cv2
 import numpy as np
 import joblib
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Union, Optional
 from sklearn.ensemble import RandomForestClassifier
-from xgboost import XGBClassifier
 from sklearn.cluster import MiniBatchKMeans
+
+# XGBoost cần OpenMP runtime (libomp) ở cấp hệ điều hành. Trên một số máy macOS
+# chưa cài libomp, import sẽ lỗi. Để app vẫn chạy được RF/SVM, ta import tùy chọn.
+try:
+    from xgboost import XGBClassifier
+    _XGBOOST_IMPORT_ERROR = None
+except Exception as _e:  # pragma: no cover - phụ thuộc môi trường
+    XGBClassifier = None
+    _XGBOOST_IMPORT_ERROR = _e
 
 class FeatureExtractorService(ABC):
     """
@@ -254,6 +263,12 @@ class XGBoostService(ClassifierService):
     Dịch vụ phân loại sử dụng XGBoost.
     """
     def __init__(self, max_depth: int = 4, learning_rate: float = 0.05, n_estimators: int = 100, random_state: int = 42):
+        if XGBClassifier is None:
+            raise RuntimeError(
+                "Không dùng được XGBoost vì thiếu thư viện OpenMP (libomp) trên hệ thống. "
+                "Cài bằng `brew install libomp` rồi thử lại, hoặc chọn RandomForest/SVM. "
+                f"Chi tiết: {_XGBOOST_IMPORT_ERROR}"
+            )
         self.model = XGBClassifier(
             max_depth=max_depth,
             learning_rate=learning_rate,
@@ -369,3 +384,72 @@ class SVMService(ClassifierService):
         exp_scores = np.exp(scores - np.max(scores))  # Ổn định số học tránh overflow
         probs = exp_scores / np.sum(exp_scores)
         return probs
+
+
+class SoftmaxService(ClassifierService):
+    """
+    Dịch vụ phân loại Softmax tuyến tính (Linear Classification) trên đặc trưng
+    Hu Moments + HSV Histogram (263 chiều, 7 lớp).
+
+    Model lưu sẵn dưới dạng W_weights.npy, b_bias.npy, classes_mapping.npy trong thư mục
+    HuHSVHistSoftmaxModel. Lúc huấn luyện đặc trưng được chuẩn hóa z-score nhưng scaler
+    KHÔNG được lưu kèm, nên ta khôi phục mean/std từ X_features.npy (đặc trưng huấn luyện).
+    Service tự trích đặc trưng riêng (không qua BoVW/SIFT/ORB), tương tự SVMService.
+    """
+    def __init__(self):
+        self.W: Optional[np.ndarray] = None      # (n_classes, 263)
+        self.b: Optional[np.ndarray] = None      # (n_classes,)
+        self.mean: Optional[np.ndarray] = None   # (263,)
+        self.std: Optional[np.ndarray] = None    # (263,)
+        self.classes: List[str] = []
+        self.is_fitted = False
+
+    def load(self, model_dir: str) -> None:
+        """Tải W, b, danh sách lớp và khôi phục scaler z-score từ X_features.npy."""
+        self.W = np.load(os.path.join(model_dir, "W_weights.npy")).astype(np.float64)
+        self.b = np.load(os.path.join(model_dir, "b_bias.npy")).astype(np.float64)
+        self.classes = [str(c) for c in np.load(os.path.join(model_dir, "classes_mapping.npy"))]
+
+        # Khôi phục bước chuẩn hóa z-score (scaler không được lưu kèm model)
+        X = np.load(os.path.join(model_dir, "X_features.npy")).astype(np.float64)
+        self.mean = X.mean(axis=0)
+        self.std = X.std(axis=0) + 1e-8
+        self.is_fitted = True
+
+    def save(self, filepath: str) -> None:
+        raise NotImplementedError("SoftmaxService dùng model pre-trained, không lưu lại từ app.")
+
+    @staticmethod
+    def extract_features(image_bgr: np.ndarray) -> np.ndarray:
+        """
+        Trích xuất 263 chiều = HSV Histogram (8x8x4=256) + Hu Moments (7).
+        Phải đồng nhất với m1_preprocessing.py của model gốc.
+        """
+        hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
+        hist = cv2.calcHist([hsv], [0, 1, 2], None, [8, 8, 4], [0, 180, 0, 256, 0, 256])
+        cv2.normalize(hist, hist)
+        hist_features = hist.flatten()
+
+        gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
+        hu = cv2.HuMoments(cv2.moments(thresh)).flatten()
+        hu = -np.sign(hu) * np.log10(np.abs(hu) + 1e-10)
+
+        return np.hstack([hist_features, hu]).astype(np.float64)
+
+    def _scores(self, feature_vector: np.ndarray) -> np.ndarray:
+        x = (feature_vector.astype(np.float64) - self.mean) / self.std
+        return self.W @ x + self.b
+
+    def predict(self, feature_vector: np.ndarray) -> str:
+        if not self.is_fitted:
+            raise ValueError("Softmax model chưa được tải.")
+        scores = self._scores(feature_vector)
+        return self.classes[int(np.argmax(scores))]
+
+    def predict_proba(self, feature_vector: np.ndarray) -> np.ndarray:
+        if not self.is_fitted:
+            raise ValueError("Softmax model chưa được tải.")
+        scores = self._scores(feature_vector)
+        exp_scores = np.exp(scores - np.max(scores))
+        return exp_scores / np.sum(exp_scores)

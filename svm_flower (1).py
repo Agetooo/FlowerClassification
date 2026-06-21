@@ -23,7 +23,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-CLASSES = ["daisy", "dandelion", "rose", "sunflower", "tulip"]
+# Phải trùng đúng thứ tự với ClassificationHub.classes trong hub.py
+CLASSES = ["bellflower", "daisy", "dandelion", "lotus", "rose", "sunflower", "tulip"]
 IMG_SIZE = (32, 32)
 DATASET_DIR = "flower-training"
 RANDOM_STATE = 42
@@ -90,6 +91,9 @@ def train_and_tune_svm(X_train, y_train, X_val, y_val):
         svm = LinearSVC(
             C=C,
             class_weight="balanced",
+            # dual=False (primal) hội tụ nhanh hơn rất nhiều khi n_samples > n_features
+            # (8064 mẫu > 3072 chiều). Tránh treo như khi dùng dual=True mặc định.
+            dual=False,
             max_iter=10000,
             random_state=RANDOM_STATE,
         )

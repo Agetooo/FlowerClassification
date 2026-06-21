@@ -62,13 +62,16 @@ def predict():
     file.save(temp_path)
     
     try:
+        # SVM và Softmax tự xử lý đặc trưng riêng, không cần Feature Extractor (SIFT/ORB)
+        raw_feature_clf = classifier_type.upper() in ("SVM", "SOFTMAX")
+
         # Cấu hình lại Extractor và Classifier
-        if classifier_type.upper() != "SVM":
+        if not raw_feature_clf:
             hub.set_extractor(extractor_type)
         hub.set_classifier(classifier_type)
-        
+
         # Kiểm tra xem mô hình của cấu hình này đã được huấn luyện chưa
-        if classifier_type.upper() == "SVM":
+        if raw_feature_clf:
             model_exists = os.path.exists(hub._get_classifier_path())
         else:
             model_exists = os.path.exists(hub._get_vocab_path()) and os.path.exists(hub._get_classifier_path())
@@ -105,7 +108,11 @@ def predict():
             "original_image": f"data:image/jpeg;base64,{orig_base64}",
             "preprocessed_image": f"data:image/jpeg;base64,{prep_base64}",
             "config": {
-                "extractor": extractor_type if classifier_type.upper() != "SVM" else "None (Raw Pixels)",
+                "extractor": (
+                    "None (Raw Pixels)" if classifier_type.upper() == "SVM"
+                    else "None (Hu+HSV)" if classifier_type.upper() == "SOFTMAX"
+                    else extractor_type
+                ),
                 "classifier": classifier_type
             }
         })

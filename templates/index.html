@@ -622,6 +622,7 @@
                     <button class="btn-toggle active" data-val="RandomForest">RF</button>
                     <button class="btn-toggle" data-val="XGBoost">XGBoost</button>
                     <button class="btn-toggle" data-val="SVM">SVM Cũ</button>
+                    <button class="btn-toggle" data-val="Softmax">Softmax</button>
                 </div>
             </div>
 
@@ -794,9 +795,9 @@
         setupToggles('classifier-group', (val) => {
             selectedClassifier = val;
             
-            // SVM bypasses feature extraction, disable extractor buttons
+            // SVM và Softmax tự xử lý đặc trưng riêng -> vô hiệu hóa nút extractor
             const extractorButtons = document.getElementById('extractor-group').querySelectorAll('.btn-toggle');
-            if (val === 'SVM') {
+            if (val === 'SVM' || val === 'Softmax') {
                 extractorButtons.forEach(btn => btn.setAttribute('disabled', 'true'));
             } else {
                 extractorButtons.forEach(btn => btn.removeAttribute('disabled'));

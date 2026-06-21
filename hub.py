@@ -7,7 +7,7 @@ from typing import Optional, List, Tuple
 from preprocess import preprocess_single_image, extract_flower_mask
 from services import (
     FeatureExtractorService, SIFTService, ORBService,
-    ClassifierService, RandomForestService, XGBoostService, SVMService,
+    ClassifierService, RandomForestService, XGBoostService, SVMService, SoftmaxService,
     VisualVocabulary, extract_hsv_histogram
 )
 
@@ -65,6 +65,9 @@ class ClassificationHub:
         elif name == "SVM":
             self.classifier = SVMService()
             self.classifier_name = "SVM"
+        elif name == "SOFTMAX":
+            self.classifier = SoftmaxService()
+            self.classifier_name = "Softmax"
         else:
             raise ValueError(f"Không hỗ trợ thuật toán phân loại: {classifier_type}")
             
@@ -72,11 +75,18 @@ class ClassificationHub:
 
     def _get_vocab_path(self) -> str:
         return os.path.join(self.models_dir, f"vocab_{self.extractor_name.lower()}_opt.joblib")
- 
+
+    def _get_softmax_dir(self) -> str:
+        # Thư mục chứa model Softmax 7 lớp (Hu Moments + HSV Histogram)
+        return os.path.join(self.models_dir, "it3160", "HuHSVHistSoftmaxModel")
+
     def _get_classifier_path(self) -> str:
         if self.classifier_name == "SVM":
             # Tương thích ngược với file best_svm_flower.joblib ở thư mục chỉ định
             return os.path.join(self.models_dir, "best_svm_flower.joblib")
+        if self.classifier_name == "Softmax":
+            # Dùng W_weights.npy làm "mốc" để app.py kiểm tra model đã tồn tại chưa
+            return os.path.join(self._get_softmax_dir(), "W_weights.npy")
         return os.path.join(self.models_dir, f"model_{self.classifier_name.lower()}_{self.extractor_name.lower()}_opt.joblib")
 
     def _auto_load_if_possible(self) -> None:
@@ -89,6 +99,14 @@ class ClassificationHub:
             if os.path.exists(path):
                 self.classifier.load(path)
                 print(f"[Hub] Đã tự động tải mô hình SVM tương thích ngược từ: {path}")
+            return
+
+        # Softmax chỉ cần tải thư mục model (W, b, classes, X_features)
+        if self.classifier_name == "Softmax":
+            softmax_dir = self._get_softmax_dir()
+            if os.path.exists(os.path.join(softmax_dir, "W_weights.npy")):
+                self.classifier.load(softmax_dir)
+                print(f"[Hub] Đã tự động tải mô hình Softmax 7 lớp từ: {softmax_dir}")
             return
 
         # SIFT/ORB + RF/XGBoost cần cả extractor, vocab và classifier
@@ -110,6 +128,10 @@ class ClassificationHub:
         """
         if self.classifier_name == "SVM":
             print("[Hub] SVM sử dụng mô hình pre-trained tương thích ngược, không cần train.")
+            return
+
+        if self.classifier_name == "Softmax":
+            print("[Hub] Softmax sử dụng mô hình pre-trained (Hu+HSV), không cần train.")
             return
 
         if not self.extractor_name or not self.classifier_name:
@@ -259,6 +281,16 @@ class ClassificationHub:
             # Predict
             return self.classifier.predict(arr)
 
+        # Xử lý riêng biệt cho Softmax (Hu Moments + HSV Histogram, 7 lớp)
+        if self.classifier_name == "Softmax":
+            if not self.classifier.is_fitted:
+                raise ValueError("Softmax classifier service chưa được tải model.")
+            img = cv2.imread(image_path)
+            if img is None:
+                raise ValueError(f"Không thể đọc ảnh bằng OpenCV tại: {image_path}")
+            feat = self.classifier.extract_features(img)
+            return self.classifier.predict(feat)
+
         # Xử lý cho các pipeline SIFT/ORB + RF/XGBoost
         if not self.extractor or not self.classifier or not self.vocab.is_fitted:
             raise ValueError("Pipeline chưa được thiết lập đầy đủ hoặc chưa được huấn luyện/tải model.")
@@ -312,6 +344,19 @@ class ClassificationHub:
             
             pred = self.classifier.predict(arr)
             probs = self.classifier.predict_proba(arr)
+            prob_dict = {self.classes[i]: float(probs[i]) for i in range(len(self.classes))}
+            return pred, prob_dict
+
+        # Xử lý riêng biệt cho Softmax (Hu Moments + HSV Histogram, 7 lớp)
+        if self.classifier_name == "Softmax":
+            if not self.classifier.is_fitted:
+                raise ValueError("Softmax classifier service chưa được tải model.")
+            img = cv2.imread(image_path)
+            if img is None:
+                raise ValueError(f"Không thể đọc ảnh bằng OpenCV tại: {image_path}")
+            feat = self.classifier.extract_features(img)
+            pred = self.classifier.predict(feat)
+            probs = self.classifier.predict_proba(feat)
             prob_dict = {self.classes[i]: float(probs[i]) for i in range(len(self.classes))}
             return pred, prob_dict
 
