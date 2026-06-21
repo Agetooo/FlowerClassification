@@ -7,7 +7,7 @@ __pycache__/
 # Datasets (Do not upload raw images/datasets to GitHub)
 flower-training/
 uploads/
-
+it3160/
 # Trained models & large binary files
 *.joblib
 *.pkl
