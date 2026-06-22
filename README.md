@@ -7,7 +7,7 @@
 ## Tính năng
 
 - Phân loại **7 loài hoa**: Bellflower, Daisy, Dandelion, Lotus, Rose, Sunflower, Tulip
-- **4 bộ phân loại** có thể chọn: Random Forest, XGBoost, SVM, Softmax
+- **5 bộ phân loại** có thể chọn: Random Forest, XGBoost, SVM, KNN, Softmax
 - **3 thuật toán trích xuất đặc trưng**: SIFT, ORB và HOG (dùng với RF và XGBoost)
 - Hiển thị **phân phối xác suất** dự đoán của từng loài hoa
 - So sánh ảnh gốc và ảnh đã tiền xử lý trên UI
@@ -30,10 +30,11 @@ FlowerClassification/
 │   ├── best_softmax.npy
 │   ├── random_forest_flower.py
 │   └── softmax.ipynb
-├── best_svm_flower.joblib      # Model SVM pre-trained (raw pixels 32x32)
 ├── vocab_sift_opt.joblib       # Visual Vocabulary SIFT (K=300)
 ├── vocab_orb_opt.joblib        # Visual Vocabulary ORB (K=300)
 ├── vocab_hog_opt.joblib        # Visual Vocabulary HOG (K=300)
+├── model_svm_hog_opt.joblib    # Model SVM trainable trên HOG/BoVW
+├── model_knn_hog_opt.joblib    # Model KNN trainable trên HOG/BoVW
 ├── model_randomforest_sift_opt.joblib
 ├── model_randomforest_orb_opt.joblib
 ├── model_xgboost_sift_opt.joblib
@@ -57,17 +58,13 @@ FlowerClassification/
     ▼
 Tiền xử lý (resize 256×256, Gaussian blur, flower mask)
     │
-    ├─── SVM ──────► Raw pixels (32×32 = 3072 chiều) ──► LinearSVC
-    │
-    ├─── Softmax ──► Hu Moments (7) + HSV Histogram (256) = 263 chiều ──► W·x + b
-    │
     └─── SIFT/ORB/HOG ─► Descriptors ──► BoVW K-Means (K=300)
                                           + HSV Histogram (128)
                                           = Fused Vector (428 chiều)
                                                │
-                                    ┌──────────┴──────────┐
-                                    ▼                     ▼
-                              Random Forest           XGBoost
+                              ┌────────┬────────┬─────┬─────┬─────────┐
+                              ▼        ▼        ▼     ▼     ▼
+                         Softmax     SVM       KNN    RF   XGBoost
 ```
 
 ---
@@ -142,7 +139,7 @@ Mở trình duyệt tại: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
 ### Huấn luyện mô hình mới
 
-1. Chọn cấu hình Extractor + Classifier (RF hoặc XGBoost)
+1. Chọn cấu hình Extractor + Classifier (Softmax, SVM, KNN, RF hoặc XGBoost)
 2. Nhấn **Train** — quá trình chạy nền, có thể theo dõi tiến trình real-time
 3. Sau khi hoàn tất, model được lưu tự động và sẵn sàng dùng để predict
 
@@ -154,8 +151,9 @@ Mở trình duyệt tại: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 |--------------|-------------------|------------------------------------|---------------------------------|
 | Random Forest | SIFT, ORB hoặc HOG | BoVW (300) + HSV Histogram (128)   | Cần train hoặc load model       |
 | XGBoost      | SIFT, ORB hoặc HOG | BoVW (300) + HSV Histogram (128)   | Yêu cầu `libomp` trên macOS     |
-| SVM          | Không dùng        | Raw pixels 32×32 = 3072 chiều      | Pre-trained, không train lại    |
-| Softmax      | Không dùng        | Hu Moments (7) + HSV (256) = 263 chiều | Pre-trained, không train lại |
+| SVM          | SIFT, ORB hoặc HOG | BoVW (300) + HSV Histogram (128)   | `SVC(kernel='rbf', C=1, gamma='scale', probability=True)` |
+| KNN          | SIFT, ORB hoặc HOG | BoVW (300) + HSV Histogram (128)   | `KNeighborsClassifier(n_neighbors=5)` |
+| Softmax      | SIFT, ORB hoặc HOG | BoVW (300) + HSV Histogram (128)   | `SGDClassifier(loss='log_loss')` |
 
 ---
 
@@ -173,8 +171,8 @@ Mở trình duyệt tại: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 ```
 Content-Type: multipart/form-data
 image:      <file ảnh>
-extractor:  "SIFT" | "ORB" | "HOG"   (mặc định: "ORB")
-classifier: "RandomForest" | "XGBoost" | "SVM" | "Softmax"  (mặc định: "RandomForest")
+extractor:  "SIFT" | "ORB" | "HOG"   (mặc định: "HOG")
+classifier: "RandomForest" | "XGBoost" | "SVM" | "KNN" | "Softmax"  (mặc định: "Softmax")
 ```
 
 ### `/predict` – Response
