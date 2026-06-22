@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from typing import Optional, List, Tuple
 from preprocess import preprocess_single_image, extract_flower_mask
 from services import (
-    FeatureExtractorService, SIFTService, ORBService,
+    FeatureExtractorService, SIFTService, ORBService, HOGService,
     ClassifierService, RandomForestService, XGBoostService, SVMService, SoftmaxService,
     VisualVocabulary, extract_hsv_histogram
 )
@@ -32,7 +32,7 @@ class ClassificationHub:
         Khởi tạo Feature Extractor Service dựa trên Factory Pattern.
         
         Args:
-            extractor_type (str): 'SIFT' hoặc 'ORB'
+            extractor_type (str): 'SIFT', 'ORB' hoặc 'HOG'
         """
         name = extractor_type.upper()
         if name == "SIFT":
@@ -41,6 +41,9 @@ class ClassificationHub:
         elif name == "ORB":
             self.extractor = ORBService()
             self.extractor_name = "ORB"
+        elif name == "HOG":
+            self.extractor = HOGService()
+            self.extractor_name = "HOG"
         else:
             raise ValueError(f"Không hỗ trợ thuật toán trích xuất: {extractor_type}")
         
@@ -109,7 +112,7 @@ class ClassificationHub:
                 print(f"[Hub] Đã tự động tải mô hình Softmax 7 lớp từ: {softmax_dir}")
             return
 
-        # SIFT/ORB + RF/XGBoost cần cả extractor, vocab và classifier
+        # SIFT/ORB/HOG + RF/XGBoost cần cả extractor, vocab và classifier
         if self.extractor_name and self.classifier_name:
             vocab_path = self._get_vocab_path()
             clf_path = self._get_classifier_path()
@@ -291,7 +294,7 @@ class ClassificationHub:
             feat = self.classifier.extract_features(img)
             return self.classifier.predict(feat)
 
-        # Xử lý cho các pipeline SIFT/ORB + RF/XGBoost
+        # Xử lý cho các pipeline SIFT/ORB/HOG + RF/XGBoost
         if not self.extractor or not self.classifier or not self.vocab.is_fitted:
             raise ValueError("Pipeline chưa được thiết lập đầy đủ hoặc chưa được huấn luyện/tải model.")
 
@@ -306,7 +309,7 @@ class ClassificationHub:
         # 3. Tạo mặt nạ loại bỏ nền xanh lá cây
         mask = extract_flower_mask(preprocessed_img)
 
-        # 4. Trích xuất đặc trưng (SIFT/ORB) và đặc trưng màu sắc HSV chỉ trên vùng hoa
+        # 4. Trích xuất đặc trưng (SIFT/ORB/HOG) và đặc trưng màu sắc HSV chỉ trên vùng hoa
         descriptors = self.extractor.extract_features(preprocessed_img, mask=mask)
         color_hist = extract_hsv_histogram(preprocessed_img, mask=mask)
 
@@ -360,7 +363,7 @@ class ClassificationHub:
             prob_dict = {self.classes[i]: float(probs[i]) for i in range(len(self.classes))}
             return pred, prob_dict
 
-        # Xử lý cho các pipeline SIFT/ORB + RF/XGBoost
+        # Xử lý cho các pipeline SIFT/ORB/HOG + RF/XGBoost
         if not self.extractor or not self.classifier or not self.vocab.is_fitted:
             raise ValueError("Pipeline chưa được thiết lập đầy đủ hoặc chưa được huấn luyện/tải model.")
 

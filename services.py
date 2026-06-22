@@ -98,6 +98,56 @@ class ORBService(FeatureExtractorService):
         return 32
 
 
+class HOGService(FeatureExtractorService):
+    """
+    Feature extractor using local HOG block descriptors.
+    """
+    def __init__(
+        self,
+        win_size: Tuple[int, int] = (128, 128),
+        cell_size: Tuple[int, int] = (8, 8),
+        block_size: Tuple[int, int] = (16, 16),
+        block_stride: Tuple[int, int] = (8, 8),
+        nbins: int = 9
+    ):
+        self.win_size = win_size
+        self.block_size = block_size
+        self.block_stride = block_stride
+        self.cell_size = cell_size
+        self.nbins = nbins
+        self.hog = cv2.HOGDescriptor(
+            _winSize=win_size,
+            _blockSize=block_size,
+            _blockStride=block_stride,
+            _cellSize=cell_size,
+            _nbins=nbins
+        )
+
+    def extract_features(self, image: np.ndarray, mask: Optional[np.ndarray] = None) -> np.ndarray:
+        if len(image.shape) == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image
+
+        gray = cv2.resize(gray, self.win_size, interpolation=cv2.INTER_LINEAR)
+
+        if mask is not None:
+            resized_mask = cv2.resize(mask, self.win_size, interpolation=cv2.INTER_NEAREST)
+            gray = cv2.bitwise_and(gray, gray, mask=resized_mask)
+
+        descriptors = self.hog.compute(gray)
+        if descriptors is None:
+            return np.zeros((0, self.descriptor_dim), dtype=np.float32)
+
+        return descriptors.reshape(-1, self.descriptor_dim).astype(np.float32)
+
+    @property
+    def descriptor_dim(self) -> int:
+        cells_per_block_x = self.block_size[0] // self.cell_size[0]
+        cells_per_block_y = self.block_size[1] // self.cell_size[1]
+        return cells_per_block_x * cells_per_block_y * self.nbins
+
+
 def extract_hsv_histogram(image: np.ndarray, mask: Optional[np.ndarray] = None) -> np.ndarray:
     """
     Trích xuất và chuẩn hóa L2 histogram màu sắc 3D HSV của ảnh.
