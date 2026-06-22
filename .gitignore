@@ -8,7 +8,6 @@ __pycache__/
 flower-training/
 flower-training
 uploads/
-it3160/
 flowers/
 # Trained models & large binary files
 *.joblib
