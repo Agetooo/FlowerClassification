@@ -63,7 +63,7 @@ def predict():
     
     try:
         # SVM và Softmax tự xử lý đặc trưng riêng, không cần Feature Extractor (SIFT/ORB)
-        raw_feature_clf = classifier_type.upper() in ("SVM", "SOFTMAX")
+        raw_feature_clf = classifier_type.upper() in ("SVM", "CNN")
 
         # Cấu hình lại Extractor và Classifier
         if not raw_feature_clf:
@@ -110,7 +110,7 @@ def predict():
             "config": {
                 "extractor": (
                     "None (Raw Pixels)" if classifier_type.upper() == "SVM"
-                    else "None (Hu+HSV)" if classifier_type.upper() == "SOFTMAX"
+                    else "None (64x64 pixels)" if classifier_type.upper() == "CNN"
                     else extractor_type
                 ),
                 "classifier": classifier_type
