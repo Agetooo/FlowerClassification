@@ -14,9 +14,15 @@ flowers/
 *.joblib
 *.pkl
 *.npy
+*.h5
 *.zip
 *.tar.gz
 *.tgz
+
+# Test & tool cache
+.pytest_cache/
+.claude/
+docs/
 
 # IDE configuration
 .vscode/
