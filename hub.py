@@ -7,7 +7,7 @@ from typing import Optional, List, Tuple
 from preprocess import preprocess_single_image, extract_flower_mask
 from services import (
     FeatureExtractorService, SIFTService, ORBService,
-    ClassifierService, RandomForestService, XGBoostService, SVMService, SoftmaxService,
+    ClassifierService, RandomForestService, XGBoostService, SVMService, CNNService,
     VisualVocabulary, extract_hsv_histogram
 )
 
@@ -65,55 +65,45 @@ class ClassificationHub:
         elif name == "SVM":
             self.classifier = SVMService()
             self.classifier_name = "SVM"
-        elif name == "SOFTMAX":
-            self.classifier = SoftmaxService()
-            self.classifier_name = "Softmax"
+        elif name == "CNN":
+            self.classifier = CNNService()
+            self.classifier_name = "CNN"
         else:
             raise ValueError(f"Không hỗ trợ thuật toán phân loại: {classifier_type}")
-            
+
         self._auto_load_if_possible()
 
     def _get_vocab_path(self) -> str:
         return os.path.join(self.models_dir, f"vocab_{self.extractor_name.lower()}_opt.joblib")
 
-    def _get_softmax_dir(self) -> str:
-        # Thư mục chứa model Softmax 7 lớp (Hu Moments + HSV Histogram)
-        return os.path.join(self.models_dir, "it3160", "HuHSVHistSoftmaxModel")
-
     def _get_classifier_path(self) -> str:
         if self.classifier_name == "SVM":
-            # Tương thích ngược với file best_svm_flower.joblib ở thư mục chỉ định
             return os.path.join(self.models_dir, "best_svm_flower.joblib")
-        if self.classifier_name == "Softmax":
-            # Dùng W_weights.npy làm "mốc" để app.py kiểm tra model đã tồn tại chưa
-            return os.path.join(self._get_softmax_dir(), "W_weights.npy")
+        if self.classifier_name == "CNN":
+            return os.path.join(self.models_dir, "cnn_flower_model.h5")
         return os.path.join(self.models_dir, f"model_{self.classifier_name.lower()}_{self.extractor_name.lower()}_opt.joblib")
 
     def _auto_load_if_possible(self) -> None:
         """
         Tự động kiểm tra và tải các tệp mô hình đã huấn luyện nếu có sẵn trên đĩa.
         """
-        # SVM chỉ cần tải model
         if self.classifier_name == "SVM":
             path = self._get_classifier_path()
             if os.path.exists(path):
                 self.classifier.load(path)
-                print(f"[Hub] Đã tự động tải mô hình SVM tương thích ngược từ: {path}")
+                print(f"[Hub] Đã tự động tải mô hình SVM từ: {path}")
             return
 
-        # Softmax chỉ cần tải thư mục model (W, b, classes, X_features)
-        if self.classifier_name == "Softmax":
-            softmax_dir = self._get_softmax_dir()
-            if os.path.exists(os.path.join(softmax_dir, "W_weights.npy")):
-                self.classifier.load(softmax_dir)
-                print(f"[Hub] Đã tự động tải mô hình Softmax 7 lớp từ: {softmax_dir}")
+        if self.classifier_name == "CNN":
+            path = self._get_classifier_path()
+            if os.path.exists(path):
+                self.classifier.load(path, classes=self.classes)
+                print(f"[Hub] Đã tự động tải mô hình CNN từ: {path}")
             return
 
-        # SIFT/ORB + RF/XGBoost cần cả extractor, vocab và classifier
         if self.extractor_name and self.classifier_name:
             vocab_path = self._get_vocab_path()
             clf_path = self._get_classifier_path()
-            
             if os.path.exists(vocab_path) and os.path.exists(clf_path):
                 self.vocab.load(vocab_path)
                 self.classifier.load(clf_path)
@@ -130,8 +120,8 @@ class ClassificationHub:
             print("[Hub] SVM sử dụng mô hình pre-trained tương thích ngược, không cần train.")
             return
 
-        if self.classifier_name == "Softmax":
-            print("[Hub] Softmax sử dụng mô hình pre-trained (Hu+HSV), không cần train.")
+        if self.classifier_name == "CNN":
+            print("[Hub] CNN sử dụng train_cnn.py riêng, không train từ UI.")
             return
 
         if not self.extractor_name or not self.classifier_name:
@@ -281,15 +271,13 @@ class ClassificationHub:
             # Predict
             return self.classifier.predict(arr)
 
-        # Xử lý riêng biệt cho Softmax (Hu Moments + HSV Histogram, 7 lớp)
-        if self.classifier_name == "Softmax":
+        if self.classifier_name == "CNN":
             if not self.classifier.is_fitted:
-                raise ValueError("Softmax classifier service chưa được tải model.")
+                raise ValueError("CNN classifier service chưa được tải model.")
             img = cv2.imread(image_path)
             if img is None:
-                raise ValueError(f"Không thể đọc ảnh bằng OpenCV tại: {image_path}")
-            feat = self.classifier.extract_features(img)
-            return self.classifier.predict(feat)
+                raise ValueError(f"Không thể đọc ảnh tại: {image_path}")
+            return self.classifier.predict(img)
 
         # Xử lý cho các pipeline SIFT/ORB + RF/XGBoost
         if not self.extractor or not self.classifier or not self.vocab.is_fitted:
@@ -347,16 +335,14 @@ class ClassificationHub:
             prob_dict = {self.classes[i]: float(probs[i]) for i in range(len(self.classes))}
             return pred, prob_dict
 
-        # Xử lý riêng biệt cho Softmax (Hu Moments + HSV Histogram, 7 lớp)
-        if self.classifier_name == "Softmax":
+        if self.classifier_name == "CNN":
             if not self.classifier.is_fitted:
-                raise ValueError("Softmax classifier service chưa được tải model.")
+                raise ValueError("CNN classifier service chưa được tải model.")
             img = cv2.imread(image_path)
             if img is None:
-                raise ValueError(f"Không thể đọc ảnh bằng OpenCV tại: {image_path}")
-            feat = self.classifier.extract_features(img)
-            pred = self.classifier.predict(feat)
-            probs = self.classifier.predict_proba(feat)
+                raise ValueError(f"Không thể đọc ảnh tại: {image_path}")
+            pred = self.classifier.predict(img)
+            probs = self.classifier.predict_proba(img)
             prob_dict = {self.classes[i]: float(probs[i]) for i in range(len(self.classes))}
             return pred, prob_dict
 
