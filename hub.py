@@ -53,7 +53,7 @@ class ClassificationHub:
         Khởi tạo Classifier Service dựa trên Factory Pattern.
         
         Args:
-            classifier_type (str): 'RandomForest', 'XGBoost' hoặc 'SVM'
+            classifier_type (str): 'RandomForest', 'XGBoost', 'SVM' hoặc 'CNN'
         """
         name = classifier_type.upper()
         if name == "RANDOMFOREST":
