@@ -611,17 +611,19 @@
             <div class="form-group">
                 <label class="form-label">Bộ trích xuất đặc trưng (Feature Extractor)</label>
                 <div class="btn-group" id="extractor-group">
-                    <button class="btn-toggle active" data-val="SIFT">SIFT</button>
+                    <button class="btn-toggle" data-val="SIFT">SIFT</button>
                     <button class="btn-toggle" data-val="ORB">ORB</button>
+                    <button class="btn-toggle active" data-val="HOG">HOG</button>
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label">Bộ phân loại (Classifier)</label>
                 <div class="btn-group" id="classifier-group">
-                    <button class="btn-toggle active" data-val="RandomForest">RF</button>
+                    <button class="btn-toggle" data-val="RandomForest">RF</button>
                     <button class="btn-toggle" data-val="XGBoost">XGBoost</button>
-                    <button class="btn-toggle" data-val="SVM">SVM Cũ</button>
+                    <button class="btn-toggle" data-val="SVM">SVM</button>
+                    <button class="btn-toggle" data-val="KNN">KNN</button>
                     <button class="btn-toggle" data-val="CNN">CNN</button>
                 </div>
             </div>
@@ -762,8 +764,8 @@
         const modalProgressMsg = document.getElementById('modal-progress-msg');
 
         // State variables
-        let selectedExtractor = 'SIFT';
-        let selectedClassifier = 'RandomForest';
+        let selectedExtractor = 'HOG';
+        let selectedClassifier = 'Softmax';
         let uploadedFile = null;
 
         // Class colors mapping for results badge and progress bars
@@ -794,10 +796,10 @@
 
         setupToggles('classifier-group', (val) => {
             selectedClassifier = val;
-            
-            // SVM và CNN tự xử lý đặc trưng riêng -> vô hiệu hóa nút extractor
+
+            // CNN không dùng extractor -> vô hiệu hóa nút extractor
             const extractorButtons = document.getElementById('extractor-group').querySelectorAll('.btn-toggle');
-            if (val === 'SVM' || val === 'CNN') {
+            if (val === 'CNN') {
                 extractorButtons.forEach(btn => btn.setAttribute('disabled', 'true'));
             } else {
                 extractorButtons.forEach(btn => btn.removeAttribute('disabled'));
