@@ -10,7 +10,7 @@ flower-training
 uploads/
 flowers/
 # Trained models & large binary files
-*.joblib
+# *.joblib
 *.pkl
 *.npy
 *.h5
