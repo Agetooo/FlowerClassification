@@ -81,3 +81,11 @@ def test_cnn_service_predict_raises_if_not_loaded():
     fake_img = np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
     with pytest.raises(ValueError, match="chưa được tải"):
         svc.predict(fake_img)
+
+
+def test_cnn_service_predict_proba_raises_if_not_loaded():
+    from services import CNNService
+    svc = CNNService()
+    fake_img = np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
+    with pytest.raises(ValueError, match="chưa được tải"):
+        svc.predict_proba(fake_img)

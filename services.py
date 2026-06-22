@@ -406,7 +406,7 @@ class CNNService(ClassifierService):
 
     def save(self, filepath: str) -> None:
         if not self.is_fitted:
-            raise ValueError("CNN model chưa được train.")
+            raise ValueError("CNN model chưa được tải.")
         self.model.save(filepath)
 
     def _preprocess(self, image_bgr: np.ndarray) -> np.ndarray:
