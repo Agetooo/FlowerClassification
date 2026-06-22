@@ -386,70 +386,44 @@ class SVMService(ClassifierService):
         return probs
 
 
-class SoftmaxService(ClassifierService):
+class CNNService(ClassifierService):
     """
-    Dịch vụ phân loại Softmax tuyến tính (Linear Classification) trên đặc trưng
-    Hu Moments + HSV Histogram (263 chiều, 7 lớp).
-
-    Model lưu sẵn dưới dạng W_weights.npy, b_bias.npy, classes_mapping.npy trong thư mục
-    HuHSVHistSoftmaxModel. Lúc huấn luyện đặc trưng được chuẩn hóa z-score nhưng scaler
-    KHÔNG được lưu kèm, nên ta khôi phục mean/std từ X_features.npy (đặc trưng huấn luyện).
-    Service tự trích đặc trưng riêng (không qua BoVW/SIFT/ORB), tương tự SVMService.
+    Dịch vụ phân loại dùng CNN (Keras). Load model .h5, resize ảnh 64x64,
+    normalize /255, predict trực tiếp từ ảnh BGR — không cần SIFT/ORB/vocab.
     """
     def __init__(self):
-        self.W: Optional[np.ndarray] = None      # (n_classes, 263)
-        self.b: Optional[np.ndarray] = None      # (n_classes,)
-        self.mean: Optional[np.ndarray] = None   # (263,)
-        self.std: Optional[np.ndarray] = None    # (263,)
+        self.model = None
         self.classes: List[str] = []
         self.is_fitted = False
 
-    def load(self, model_dir: str) -> None:
-        """Tải W, b, danh sách lớp và khôi phục scaler z-score từ X_features.npy."""
-        self.W = np.load(os.path.join(model_dir, "W_weights.npy")).astype(np.float64)
-        self.b = np.load(os.path.join(model_dir, "b_bias.npy")).astype(np.float64)
-        self.classes = [str(c) for c in np.load(os.path.join(model_dir, "classes_mapping.npy"))]
-
-        # Khôi phục bước chuẩn hóa z-score (scaler không được lưu kèm model)
-        X = np.load(os.path.join(model_dir, "X_features.npy")).astype(np.float64)
-        self.mean = X.mean(axis=0)
-        self.std = X.std(axis=0) + 1e-8
+    def load(self, filepath: str, classes: Optional[List[str]] = None) -> None:
+        """Load model .h5 từ đĩa. classes có thể truyền vào hoặc lấy từ hub."""
+        import tensorflow as tf
+        self.model = tf.keras.models.load_model(filepath)
+        if classes is not None:
+            self.classes = classes
         self.is_fitted = True
 
     def save(self, filepath: str) -> None:
-        raise NotImplementedError("SoftmaxService dùng model pre-trained, không lưu lại từ app.")
-
-    @staticmethod
-    def extract_features(image_bgr: np.ndarray) -> np.ndarray:
-        """
-        Trích xuất 263 chiều = HSV Histogram (8x8x4=256) + Hu Moments (7).
-        Phải đồng nhất với m1_preprocessing.py của model gốc.
-        """
-        hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
-        hist = cv2.calcHist([hsv], [0, 1, 2], None, [8, 8, 4], [0, 180, 0, 256, 0, 256])
-        cv2.normalize(hist, hist)
-        hist_features = hist.flatten()
-
-        gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
-        _, thresh = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
-        hu = cv2.HuMoments(cv2.moments(thresh)).flatten()
-        hu = -np.sign(hu) * np.log10(np.abs(hu) + 1e-10)
-
-        return np.hstack([hist_features, hu]).astype(np.float64)
-
-    def _scores(self, feature_vector: np.ndarray) -> np.ndarray:
-        x = (feature_vector.astype(np.float64) - self.mean) / self.std
-        return self.W @ x + self.b
-
-    def predict(self, feature_vector: np.ndarray) -> str:
         if not self.is_fitted:
-            raise ValueError("Softmax model chưa được tải.")
-        scores = self._scores(feature_vector)
-        return self.classes[int(np.argmax(scores))]
+            raise ValueError("CNN model chưa được train.")
+        self.model.save(filepath)
 
-    def predict_proba(self, feature_vector: np.ndarray) -> np.ndarray:
+    def _preprocess(self, image_bgr: np.ndarray) -> np.ndarray:
+        """Resize về 64x64, chuyển BGR→RGB, normalize /255."""
+        img = cv2.resize(image_bgr, (64, 64))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        return img.astype(np.float32) / 255.0
+
+    def predict(self, image_bgr: np.ndarray) -> str:
         if not self.is_fitted:
-            raise ValueError("Softmax model chưa được tải.")
-        scores = self._scores(feature_vector)
-        exp_scores = np.exp(scores - np.max(scores))
-        return exp_scores / np.sum(exp_scores)
+            raise ValueError("CNN model chưa được tải.")
+        x = self._preprocess(image_bgr)[np.newaxis, ...]  # (1, 64, 64, 3)
+        probs = self.model.predict(x, verbose=0)[0]
+        return self.classes[int(np.argmax(probs))]
+
+    def predict_proba(self, image_bgr: np.ndarray) -> np.ndarray:
+        if not self.is_fitted:
+            raise ValueError("CNN model chưa được tải.")
+        x = self._preprocess(image_bgr)[np.newaxis, ...]
+        return self.model.predict(x, verbose=0)[0]
