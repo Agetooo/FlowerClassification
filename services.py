@@ -134,7 +134,7 @@ def extract_hsv_histogram(image: np.ndarray, mask: Optional[np.ndarray] = None) 
 
 
 class VisualVocabulary:
-    def __init__(self, n_clusters: int = 300):
+    def __init__(self, n_clusters: int = 500):
         self.n_clusters = n_clusters
         self.kmeans = MiniBatchKMeans(n_clusters=n_clusters, random_state=42, batch_size=1000, n_init="auto")
         self.is_fitted = False
@@ -250,12 +250,13 @@ class SklearnClassifierService(ClassifierService):
 
 
 class RandomForestService(SklearnClassifierService):
-    def __init__(self, n_estimators: int = 100, max_depth: Optional[int] = 12, random_state: int = 42):
+    def __init__(self, n_estimators: int = 200, max_depth: Optional[int] = 10, random_state: int = 42):
         super().__init__()
         self.model = RandomForestClassifier(
             n_estimators=n_estimators,
             max_depth=max_depth,
-            min_samples_leaf=4,
+            min_samples_leaf=3,
+            min_samples_split=6,
             max_features="sqrt",
             random_state=random_state,
             class_weight="balanced",
@@ -266,9 +267,9 @@ class RandomForestService(SklearnClassifierService):
 class XGBoostService(SklearnClassifierService):
     def __init__(
         self,
-        max_depth: int = 4,
+        max_depth: int = 5,
         learning_rate: float = 0.05,
-        n_estimators: int = 100,
+        n_estimators: int = 200,
         random_state: int = 42,
     ):
         super().__init__()
@@ -283,6 +284,8 @@ class XGBoostService(SklearnClassifierService):
             n_estimators=n_estimators,
             subsample=0.8,
             colsample_bytree=0.8,
+            reg_alpha=1.0,
+            reg_lambda=1.0,
             random_state=random_state,
             eval_metric="mlogloss",
         )

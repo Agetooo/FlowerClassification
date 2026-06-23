@@ -10,8 +10,8 @@ def extract_flower_mask(img: np.ndarray) -> np.ndarray:
     """
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     # Xác định dải màu xanh lá cây trong không gian HSV của OpenCV
-    lower_green = np.array([18, 40, 40])
-    upper_green = np.array([43, 255, 255])
+    lower_green = np.array([35, 40, 40])
+    upper_green = np.array([85, 255, 255])
     
     green_mask = cv2.inRange(hsv, lower_green, upper_green)
     # Đảo ngược mặt nạ để lấy vùng không phải xanh lá cây
