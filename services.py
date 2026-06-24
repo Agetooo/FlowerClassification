@@ -363,7 +363,7 @@ class CNNService(ClassifierService):
     def predict(self, image_bgr: np.ndarray) -> str:
         if not self.is_fitted:
             raise ValueError("CNN model chưa được tải.")
-        x = self._preprocess(image_bgr)[np.newaxis, ...]  # (1, 64, 64, 3)
+        x = self._preprocess(image_bgr)[np.newaxis, ...]
         probs = self.model.predict(x, verbose=0)[0]
         return self.classes[int(np.argmax(probs))]
 

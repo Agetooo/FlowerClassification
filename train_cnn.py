@@ -35,19 +35,30 @@ def load_dataset(dataset_dir):
 
 def build_model(num_classes=7):
     model = tf.keras.Sequential([
-        tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(64, 64, 3)),
+        tf.keras.layers.Input(shape=(64, 64, 3)),
+
+        # Data augmentation — chỉ active khi training=True, tắt tự động lúc predict
+        tf.keras.layers.RandomFlip('horizontal'),
+        tf.keras.layers.RandomRotation(0.1),
+        tf.keras.layers.RandomZoom(0.1),
+
+        # Khối 1
+        tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
         tf.keras.layers.MaxPooling2D((2, 2)),
         tf.keras.layers.Dropout(0.25),
 
+        # Khối 2
         tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
         tf.keras.layers.MaxPooling2D((2, 2)),
         tf.keras.layers.Dropout(0.25),
 
+        # Khối 3
         tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
         tf.keras.layers.MaxPooling2D((2, 2)),
         tf.keras.layers.Dropout(0.25),
 
-        tf.keras.layers.Flatten(),
+        # GlobalAveragePooling: 8×8×128 → 128
+        tf.keras.layers.GlobalAveragePooling2D(),
         tf.keras.layers.Dense(256, activation='relu'),
         tf.keras.layers.Dropout(0.5),
         tf.keras.layers.Dense(num_classes, activation='softmax')
