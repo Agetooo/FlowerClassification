@@ -69,15 +69,18 @@ def predict():
         if img is None:
             return jsonify({"error": "Không thể giải mã tệp ảnh đầu vào."}), 400
 
-        preprocessed_img = preprocess_single_image(img, targetedSize=(256, 256))
-        mask = extract_flower_mask(preprocessed_img)
-        segmented_img = cv2.bitwise_and(preprocessed_img, preprocessed_img, mask=mask)
-
         _, orig_buffer = cv2.imencode(".jpg", img)
         orig_base64 = base64.b64encode(orig_buffer).decode("utf-8")
 
-        _, prep_buffer = cv2.imencode(".jpg", segmented_img)
-        prep_base64 = base64.b64encode(prep_buffer).decode("utf-8")
+        # AlexNet có preprocessing riêng bên trong — không cắt nền, hiển thị ảnh gốc
+        if classifier_type.upper() == "ALEXNET":
+            prep_base64 = orig_base64
+        else:
+            preprocessed_img = preprocess_single_image(img, targetedSize=(256, 256))
+            mask = extract_flower_mask(preprocessed_img)
+            segmented_img = cv2.bitwise_and(preprocessed_img, preprocessed_img, mask=mask)
+            _, prep_buffer = cv2.imencode(".jpg", segmented_img)
+            prep_base64 = base64.b64encode(prep_buffer).decode("utf-8")
 
         predicted_class, probabilities = hub.execute_pipeline_with_proba(temp_path)
         confidence = max(probabilities.values()) if probabilities else 0.0

@@ -403,10 +403,13 @@ class AlexNetService(ClassifierService):
         self.model.save(filepath)
 
     def _preprocess(self, image_bgr: np.ndarray) -> np.ndarray:
-        """Resize về 256x256, chuyển BGR→RGB, normalize /255."""
+        """Resize về 256x256, BGR→RGB, ImageNet mean/std normalization."""
         img = cv2.resize(image_bgr, (256, 256))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        return img.astype(np.float32) / 255.0
+        img = img.astype(np.float32) / 255.0
+        mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+        std  = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+        return (img - mean) / std
 
     def predict(self, image_bgr: np.ndarray) -> str:
         if not self.is_fitted:
