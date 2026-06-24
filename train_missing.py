@@ -126,7 +126,7 @@ def main():
         descs_list, color_list, y = extract_all(image_paths, labels, extractor)
 
         vpath = vocab_path(ext_name)
-        vocab = VisualVocabulary(n_clusters=300)
+        vocab = VisualVocabulary(n_clusters=500)
         if os.path.exists(vpath):
             print(f"  Load vocab: {vpath}")
             vocab.load(vpath)

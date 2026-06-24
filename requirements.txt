@@ -7,3 +7,5 @@ xgboost
 joblib
 matplotlib
 tensorflow==2.20.0
+scikit-image
+seaborn

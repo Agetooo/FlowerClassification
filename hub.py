@@ -51,7 +51,7 @@ class ClassificationHub:
         else:
             raise ValueError(f"Unsupported feature extractor: {extractor_type}")
 
-        self.vocab = VisualVocabulary(n_clusters=300)
+        self.vocab = VisualVocabulary(n_clusters=500)
         self._auto_load_if_possible()
 
     def set_classifier(self, classifier_type: str) -> None:

@@ -6,7 +6,7 @@ import cv2
 from flask import Flask, jsonify, render_template, request
 
 from hub import ClassificationHub
-from preprocess import preprocess_single_image
+from preprocess import preprocess_single_image, extract_flower_mask
 
 
 app = Flask(__name__)
@@ -70,11 +70,13 @@ def predict():
             return jsonify({"error": "Không thể giải mã tệp ảnh đầu vào."}), 400
 
         preprocessed_img = preprocess_single_image(img, targetedSize=(256, 256))
+        mask = extract_flower_mask(preprocessed_img)
+        segmented_img = cv2.bitwise_and(preprocessed_img, preprocessed_img, mask=mask)
 
         _, orig_buffer = cv2.imencode(".jpg", img)
         orig_base64 = base64.b64encode(orig_buffer).decode("utf-8")
 
-        _, prep_buffer = cv2.imencode(".jpg", preprocessed_img)
+        _, prep_buffer = cv2.imencode(".jpg", segmented_img)
         prep_base64 = base64.b64encode(prep_buffer).decode("utf-8")
 
         predicted_class, probabilities = hub.execute_pipeline_with_proba(temp_path)
