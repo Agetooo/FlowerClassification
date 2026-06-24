@@ -45,8 +45,8 @@ def predict():
     file.save(temp_path)
 
     try:
-        # CNN không cần Feature Extractor (xử lý ảnh trực tiếp)
-        raw_feature_clf = classifier_type.upper() == "CNN"
+        # CNN và AlexNet không cần Feature Extractor (xử lý ảnh trực tiếp)
+        raw_feature_clf = classifier_type.upper() in ("CNN", "ALEXNET")
 
         if not raw_feature_clf:
             hub.set_extractor(extractor_type)
@@ -92,7 +92,7 @@ def predict():
                 "original_image": f"data:image/jpeg;base64,{orig_base64}",
                 "preprocessed_image": f"data:image/jpeg;base64,{prep_base64}",
                 "config": {
-                    "extractor": "None (64x64 pixels)" if classifier_type.upper() == "CNN" else extractor_type,
+                    "extractor": f"None ({('64x64' if classifier_type.upper() == 'CNN' else '256x256')} pixels)" if raw_feature_clf else extractor_type,
                     "classifier": classifier_type,
                 },
             }

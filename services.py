@@ -377,6 +377,51 @@ class CNNService(ClassifierService):
         return self.model.predict(x, verbose=0)[0]
 
 
+class AlexNetService(ClassifierService):
+    """
+    Dịch vụ phân loại dùng AlexNet (Keras). Load model .keras, resize ảnh 256x256,
+    normalize /255, predict trực tiếp từ ảnh BGR — không cần SIFT/ORB/vocab.
+    """
+    def __init__(self):
+        self.model = None
+        self.classes: List[str] = []
+        self.is_fitted = False
+
+    def load(self, filepath: str, classes: Optional[List[str]] = None) -> None:
+        import tensorflow as tf
+        self.model = tf.keras.models.load_model(filepath)
+        if classes is not None:
+            self.classes = classes
+        self.is_fitted = True
+
+    def fit(self, X: np.ndarray, y: np.ndarray, classes: List[str]) -> None:
+        raise NotImplementedError("AlexNet training dùng script riêng, không train qua hub.")
+
+    def save(self, filepath: str) -> None:
+        if not self.is_fitted:
+            raise ValueError("AlexNet model chưa được tải.")
+        self.model.save(filepath)
+
+    def _preprocess(self, image_bgr: np.ndarray) -> np.ndarray:
+        """Resize về 256x256, chuyển BGR→RGB, normalize /255."""
+        img = cv2.resize(image_bgr, (256, 256))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        return img.astype(np.float32) / 255.0
+
+    def predict(self, image_bgr: np.ndarray) -> str:
+        if not self.is_fitted:
+            raise ValueError("AlexNet model chưa được tải.")
+        x = self._preprocess(image_bgr)[np.newaxis, ...]
+        probs = self.model.predict(x, verbose=0)[0]
+        return self.classes[int(np.argmax(probs))]
+
+    def predict_proba(self, image_bgr: np.ndarray) -> np.ndarray:
+        if not self.is_fitted:
+            raise ValueError("AlexNet model chưa được tải.")
+        x = self._preprocess(image_bgr)[np.newaxis, ...]
+        return self.model.predict(x, verbose=0)[0]
+
+
 class KNNService(SklearnClassifierService):
     def __init__(self, n_neighbors: int = 5):
         super().__init__()

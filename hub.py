@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 
 from preprocess import extract_flower_mask, preprocess_single_image
 from services import (
+    AlexNetService,
     ClassifierService,
     CNNService,
     FeatureExtractorService,
@@ -77,6 +78,9 @@ class ClassificationHub:
         elif name == "CNN":
             self.classifier = CNNService()
             self.classifier_name = "CNN"
+        elif name == "ALEXNET":
+            self.classifier = AlexNetService()
+            self.classifier_name = "AlexNet"
         else:
             raise ValueError(f"Không hỗ trợ thuật toán phân loại: {classifier_type}")
 
@@ -88,17 +92,19 @@ class ClassificationHub:
     def _get_classifier_path(self) -> str:
         if self.classifier_name == "CNN":
             return os.path.join(self.models_dir, "cnn_flower_model.h5")
+        if self.classifier_name == "AlexNet":
+            return os.path.join(self.models_dir, "it3160", "best_alexnet_tf.keras")
         return os.path.join(
             self.models_dir,
             f"model_{self.classifier_name.lower()}_{self.extractor_name.lower()}_opt.joblib",
         )
 
     def _auto_load_if_possible(self) -> None:
-        if self.classifier_name == "CNN":
+        if self.classifier_name in ("CNN", "AlexNet"):
             path = self._get_classifier_path()
             if os.path.exists(path):
                 self.classifier.load(path, classes=self.classes)
-                print(f"[Hub] Loaded CNN model from: {path}")
+                print(f"[Hub] Loaded {self.classifier_name} model from: {path}")
             return
 
         if not (self.extractor_name and self.classifier_name and self.vocab and self.classifier):
@@ -162,8 +168,8 @@ class ClassificationHub:
         return feature_vector
 
     def train_pipeline(self, dataset_dir: str) -> None:
-        if self.classifier_name == "CNN":
-            print("[Hub] CNN sử dụng train_cnn.py riêng, không train từ UI.")
+        if self.classifier_name in ("CNN", "AlexNet"):
+            print(f"[Hub] {self.classifier_name} sử dụng script riêng, không train từ UI.")
             return
 
         if not self.extractor_name or not self.classifier_name or not self.extractor or not self.classifier:
@@ -235,9 +241,9 @@ class ClassificationHub:
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"Image not found: {image_path}")
 
-        if self.classifier_name == "CNN":
+        if self.classifier_name in ("CNN", "AlexNet"):
             if not self.classifier.is_fitted:
-                raise ValueError("CNN classifier service chưa được tải model.")
+                raise ValueError(f"{self.classifier_name} classifier service chưa được tải model.")
             img = cv2.imread(image_path)
             if img is None:
                 raise ValueError(f"Không thể đọc ảnh tại: {image_path}")
@@ -250,9 +256,9 @@ class ClassificationHub:
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"Image not found: {image_path}")
 
-        if self.classifier_name == "CNN":
+        if self.classifier_name in ("CNN", "AlexNet"):
             if not self.classifier.is_fitted:
-                raise ValueError("CNN classifier service chưa được tải model.")
+                raise ValueError(f"{self.classifier_name} classifier service chưa được tải model.")
             img = cv2.imread(image_path)
             if img is None:
                 raise ValueError(f"Không thể đọc ảnh tại: {image_path}")

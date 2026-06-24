@@ -625,6 +625,7 @@
                     <button class="btn-toggle" data-val="SVM">SVM</button>
                     <button class="btn-toggle" data-val="KNN">KNN</button>
                     <button class="btn-toggle" data-val="CNN">CNN</button>
+                    <button class="btn-toggle" data-val="AlexNet">AlexNet</button>
                 </div>
             </div>
 
@@ -797,9 +798,9 @@
         setupToggles('classifier-group', (val) => {
             selectedClassifier = val;
 
-            // CNN không dùng extractor -> vô hiệu hóa nút extractor
+            // CNN và AlexNet không dùng extractor -> vô hiệu hóa nút extractor
             const extractorButtons = document.getElementById('extractor-group').querySelectorAll('.btn-toggle');
-            if (val === 'CNN') {
+            if (val === 'CNN' || val === 'AlexNet') {
                 extractorButtons.forEach(btn => btn.setAttribute('disabled', 'true'));
             } else {
                 extractorButtons.forEach(btn => btn.removeAttribute('disabled'));
