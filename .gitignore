@@ -13,6 +13,7 @@ flowers/
 # *.joblib
 *.pkl
 *.npy
+*.npz
 *.h5
 *.zip
 *.tar.gz

@@ -1,0 +1,58 @@
+Dataset: C:\Users\OS\FlowerClassification\flowers\flowers
+Features: (11200, 8100)
+
+HOG + SVM
+Train accuracy: 0.7225
+Test accuracy: 0.4513
+Precision: 0.4470
+Recall: 0.4513
+F1-score: 0.4477
+              precision    recall  f1-score   support
+
+  Bellflower       0.40      0.38      0.39       320
+       Daisy       0.44      0.35      0.39       320
+   Dandelion       0.38      0.35      0.36       320
+       Lotus       0.55      0.62      0.58       320
+        Rose       0.42      0.39      0.40       320
+   Sunflower       0.48      0.55      0.52       320
+       Tulip       0.47      0.51      0.49       320
+
+    accuracy                           0.45      2240
+   macro avg       0.45      0.45      0.45      2240
+weighted avg       0.45      0.45      0.45      2240
+
+
+HOG + KNN
+Train accuracy: 0.6117
+Test accuracy: 0.3545
+Precision: 0.4477
+Recall: 0.3545
+F1-score: 0.3544
+              precision    recall  f1-score   support
+
+  Bellflower       0.23      0.53      0.32       320
+       Daisy       0.31      0.38      0.34       320
+   Dandelion       0.34      0.31      0.33       320
+       Lotus       0.84      0.30      0.45       320
+        Rose       0.55      0.13      0.21       320
+   Sunflower       0.49      0.40      0.44       320
+       Tulip       0.36      0.43      0.39       320
+
+    accuracy                           0.35      2240
+   macro avg       0.45      0.35      0.35      2240
+weighted avg       0.45      0.35      0.35      2240
+
+
+HOG + SVM learning curve
+samples=466 train=0.9943 cv=0.3394
+samples=933 train=0.9650 cv=0.3677
+samples=1399 train=0.9388 cv=0.3883
+samples=1866 train=0.9116 cv=0.4020
+samples=2333 train=0.8901 cv=0.4074
+
+HOG + KNN learning curve
+samples=466 train=0.5057 cv=0.2466
+samples=933 train=0.5223 cv=0.2623
+samples=1399 train=0.5237 cv=0.2814
+samples=1866 train=0.5370 cv=0.2860
+samples=2333 train=0.5392 cv=0.2917

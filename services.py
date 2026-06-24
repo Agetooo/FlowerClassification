@@ -358,8 +358,11 @@ class CNNService(ClassifierService):
         self.model.save(filepath)
 
     def _preprocess(self, image_bgr: np.ndarray) -> np.ndarray:
-        """Resize về 64x64, chuyển BGR→RGB, normalize /255."""
-        img = cv2.resize(image_bgr, (64, 64))
+        """Resize to the loaded CNN input size, convert BGR to RGB, normalize /255."""
+        input_shape = self.model.input_shape
+        height = input_shape[1] or 64
+        width = input_shape[2] or 64
+        img = cv2.resize(image_bgr, (width, height))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         return img.astype(np.float32) / 255.0
 
