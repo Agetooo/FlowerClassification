@@ -15,6 +15,7 @@ flowers/
 *.npy
 *.npz
 *.h5
+*.keras
 *.zip
 *.tar.gz
 *.tgz
